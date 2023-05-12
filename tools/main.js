@@ -146,7 +146,7 @@ const H = 128;
 
 const scaleFactor = 1; // 600 is original game width
 
-function CollisionBox(x, y, w, h) {
+function CollisionBox(x, y, w, h) { // just to make spriteData happy
     this.x = x;
     this.y = y;
     this.w = w;
@@ -157,7 +157,7 @@ function main() {
     ctx = $("#cnvs").getContext('2d');
     ctx.imageSmoothingEnabled = false;
     img = new Image();
-    img.src = "./assets/sprite_low.png";
+    img.src = "./assets/dino-idle.png";
     img.onload = setup;
 }
 
@@ -166,16 +166,33 @@ function setup() {
 }
 
 function getDinoWaitingImage() {
-    let x = spriteData.LDPI.TREX.x;
-    let y = spriteData.LDPI.TREX.y;
-    let w = spriteData.TREX.WAITING_1.w;
-    let h = spriteData.TREX.WAITING_1.h;
-    ctx.canvas.width = Math.round(w * scaleFactor); // clears canvas
-    ctx.canvas.height = Math.round(h * scaleFactor);
-    ctx.drawImage(img, x, y, w, h, 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.canvas.width = img.width;
+    ctx.canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
     let imageData = convertToBitmapArray(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     printCppArray("dino_rest", imageData, ctx.canvas.width, ctx.canvas.height);
     checkBitmap(imageData, ctx.canvas.width, ctx.canvas.height);
+
+    // checkBitmap([
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00110000,0b00110000,0b00110000,0b00110000,
+    //     0b01010000,0b01010000,0b01010000,0b01010000,
+    //     0b10010000,0b10010000,0b10010000,0b10010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b11111111,0b11111111,0b11111111,0b11111111,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00110000,0b00110000,0b00110000,0b00110000,
+    //     0b01010000,0b01010000,0b01010000,0b01010000,
+    //     0b10010000,0b10010000,0b10010000,0b10010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b00010000,0b00010000,0b00010000,0b00010000,
+    //     0b11111111,0b11111111,0b11111111,0b11111111,
+    // ], 32, 16);
 }
 
 function checkBitmap(bitmap, w, h) {
@@ -183,19 +200,19 @@ function checkBitmap(bitmap, w, h) {
 
     for (let i = 0; i < bitmap.length; i++) {
         for (let j = 0; j < 8; j++) {
-            let idx = (i * 8 + j);
-            let x = (idx) % w;
-            let y = Math.floor(idx / w);
-            ctx.fillStyle = "black";
-            if (bitmap[i] & (0b1 << (8 - 1 - j)))
-                ctx.fillStyle = "white";
+            let idx = i * 8 + j;
+            let x = idx % w;
+            let y = Math.floor((idx - x) / w);
+            let bit = bitmap[i] & (0b1 << (8 - j - 1));
+            if (bit) ctx.fillStyle = "#FFF";
+            else ctx.fillStyle = "#000";
             ctx.fillRect(x, y, 1, 1);
         }
     }
 }
 
 function convertToBitmapArray(arr) {
-    let ret = new Uint8Array((arr.length / 4) / 8);
+    let ret = new Uint8Array(divideToNearest8((arr.length / 4)));
     let bits = 0;
     let idx = 1;
     let k = 0;
@@ -204,6 +221,7 @@ function convertToBitmapArray(arr) {
         let g = arr[i + 1];
         let b = arr[i + 2];
         if (idx == 8) {
+            bits |= ((activation((r + g + b) / 3)) << ((8 - (idx))));
             idx = 1;
             ret[k] = bits;
             bits = 0;
@@ -216,8 +234,13 @@ function convertToBitmapArray(arr) {
     return ret;
 }
 
+function divideToNearest8(num) {
+    return (num + (8 - num % 8) % 8) / 8;
+}
+
 function activation(val) {
-    if (val >= 150) return 1;
+    if (val >= 122) return 1;
+    return 0;
 }
 
 function printCppArray(variableName, arr, w, h) {
