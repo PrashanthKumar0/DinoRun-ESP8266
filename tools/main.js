@@ -157,7 +157,7 @@ function main() {
     ctx = $("#cnvs").getContext('2d');
     ctx.imageSmoothingEnabled = false;
     img = new Image();
-    img.src = "./assets/dino-idle.png";
+    img.src = "./assets/cactus.png";
     img.onload = setup;
 }
 
@@ -169,30 +169,15 @@ function getDinoWaitingImage() {
     ctx.canvas.width = img.width;
     ctx.canvas.height = img.height;
     ctx.drawImage(img, 0, 0);
-    let imageData = convertToBitmapArray(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data);
+    let imageData = convertToBitmapArray(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data, ctx.canvas.width, ctx.canvas.height);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     printCppArray("dino_rest", imageData, ctx.canvas.width, ctx.canvas.height);
     checkBitmap(imageData, ctx.canvas.width, ctx.canvas.height);
 
     // checkBitmap([
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00110000,0b00110000,0b00110000,0b00110000,
-    //     0b01010000,0b01010000,0b01010000,0b01010000,
-    //     0b10010000,0b10010000,0b10010000,0b10010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b11111111,0b11111111,0b11111111,0b11111111,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00110000,0b00110000,0b00110000,0b00110000,
-    //     0b01010000,0b01010000,0b01010000,0b01010000,
-    //     0b10010000,0b10010000,0b10010000,0b10010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b00010000,0b00010000,0b00010000,0b00010000,
-    //     0b11111111,0b11111111,0b11111111,0b11111111,
-    // ], 32, 16);
+    //     0b00010000, 0b00010000, 0b00010000, 0b00010000,
+    // ], 32, 1);
 }
 
 function checkBitmap(bitmap, w, h) {
@@ -201,8 +186,8 @@ function checkBitmap(bitmap, w, h) {
     for (let i = 0; i < bitmap.length; i++) {
         for (let j = 0; j < 8; j++) {
             let idx = i * 8 + j;
-            let x = idx % w;
-            let y = Math.floor((idx - x) / w);
+            let x = idx % (w + (8 - w % 8) % 8);
+            let y = Math.floor((idx - x) / (w + (8 - w % 8) % 8));
             let bit = bitmap[i] & (0b1 << (8 - j - 1));
             if (bit) ctx.fillStyle = "#FFF";
             else ctx.fillStyle = "#000";
@@ -211,32 +196,52 @@ function checkBitmap(bitmap, w, h) {
     }
 }
 
-function convertToBitmapArray(arr) {
-    let ret = new Uint8Array(divideToNearest8((arr.length / 4)));
-    let bits = 0;
-    let idx = 1;
-    let k = 0;
+function convertToBitmapArray(arr, width, height) {
+    let corrected_width = (width + (8 - width % 8) % 8);
+    let ret = new Uint8Array((height * corrected_width) / 8);
+    let byte = 0;
+    let position = 7;
+    let j = 0;
     for (let i = 0; i < arr.length; i += 4) {
         let r = arr[i];
         let g = arr[i + 1];
         let b = arr[i + 2];
-        if (idx == 8) {
-            bits |= ((activation((r + g + b) / 3)) << ((8 - (idx))));
-            idx = 1;
-            ret[k] = bits;
-            bits = 0;
-            k++;
+        let intensity = activation((r + g + b) / 3);
+        if ((((i / 4) % width) >= (width - 1))) { // todo : refactor
+            if (position == 0) {
+                position = 7;
+                ret[j++] = byte | intensity;
+                byte = 0;
+            } else {
+                byte |= intensity << (position);
+                position--;
+            }
+
+            for (let k = 0; k < (8 - width % 8) % 8; k++) {
+                let intensity = 0;
+                if (position == 0) {
+                    position = 7;
+                    ret[j++] = byte | intensity;
+                    byte = 0;
+                } else {
+                    byte |= intensity << (position);
+                    position--;
+                }
+            }
         } else {
-            idx++;
-            bits |= ((activation((r + g + b) / 3)) << ((8 - (idx - 1))));
+            if (position == 0) {
+                position = 7;
+                ret[j++] = byte | intensity;
+                byte = 0;
+            } else {
+                byte |= intensity << (position);
+                position--;
+            }
         }
     }
     return ret;
 }
 
-function divideToNearest8(num) {
-    return (num + (8 - num % 8) % 8) / 8;
-}
 
 function activation(val) {
     if (val >= 122) return 1;
