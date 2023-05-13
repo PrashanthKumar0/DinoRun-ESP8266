@@ -156,8 +156,18 @@ function CollisionBox(x, y, w, h) { // just to make spriteData happy
 function main() {
     ctx = $("#cnvs").getContext('2d');
     ctx.imageSmoothingEnabled = false;
+    ctx.canvas.onclick = (e) => {
+        let dat = e.target.getBoundingClientRect();
+        let x = Math.round(e.clientX - dat.left - 4);
+        let y = Math.round(e.clientY - dat.top - 4);
+        ctx.fillStyle = "red";
+        ctx.fillRect(x, y, 1, 1);
+        console.log(x, y);
+    }
     img = new Image();
-    img.src = "./assets/cactus.png";
+    // img.src = "./assets/cactus.png";
+    // img.src = "./assets/dino-idle.png";
+    img.src = "./assets/dino-standing.png";
     img.onload = setup;
 }
 
