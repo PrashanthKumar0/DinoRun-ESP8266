@@ -166,8 +166,11 @@ function main() {
     }
     img = new Image();
     // img.src = "./assets/cactus.png";
+    img.src = "./assets/track0.png";
+    // img.src = "./assets/track1.png";
+    // img.src = "./assets/dino-standing.png";
     // img.src = "./assets/dino-idle.png";
-    img.src = "./assets/dino-standing.png";
+    // img.src = "./assets/bcactus0.png";
     img.onload = setup;
 }
 
@@ -176,9 +179,9 @@ function setup() {
 }
 
 function getDinoWaitingImage() {
-    ctx.canvas.width = img.width;
-    ctx.canvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
+    ctx.canvas.width = img.width / 2;
+    ctx.canvas.height = img.height / 2;
+    ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
     let imageData = convertToBitmapArray(ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data, ctx.canvas.width, ctx.canvas.height);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);

@@ -304,7 +304,7 @@ function Runner(outerContainerId, opt_config) {
      * @param {string} setting
      * @param {number|string} value
      */
-    updateConfigSetting(setting, value) {
+    dinoJump(setting, value) {
       if (setting in this.config && value !== undefined) {
         this.config[setting] = value;
   
