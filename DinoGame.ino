@@ -4,6 +4,7 @@
 
 #include <Adafruit_GFX.h>     // Core graphics library
 #include <Adafruit_ST7735.h>  // Hardware-specific library for ST7735
+#include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
 #include <SPI.h>
 
 #define TFT_CS D1   // PyBadge/PyGamer display control pins: chip select
@@ -45,11 +46,13 @@ const uint8_t smcactus3[] = { 0x0, 0x18, 0x58, 0x5B, 0x5B, 0x5B, 0x5B, 0x7B, 0x7
 
 
 struct Cactus {
-  uint8_t* data;
-  int w;
-  int h;
+  const uint8_t* data;
+  const int w;
+  const int h;
   int posX;
 };
+
+Cactus c0{ smcactus0, 8, 17, 100 };
 
 
 uint8_t dinoSpriteIdx = 0;
@@ -57,9 +60,9 @@ uint8_t dinoSpriteIdx = 0;
 ||      GLOBAL  DECLARATIONS  ||
 -------------------------------*/
 
-constexpr float GRAVITY{ 0.3f };
+constexpr float GRAVITY{ 0.2f };
 float dinoVelY = 0.0f;
-float dinoVelX = 2.0f;
+float dinoVelX = 1.0f;
 
 
 #define JMP_BTN D3
@@ -75,10 +78,8 @@ uint8_t dinoY;
 const uint8_t dinoBaseY = H - REFERENCE_LEVEL - 23 + 3;  // dino's Y cant be greater than this
 const uint8_t dinoBaseX = 11;                            // dino's X cant be greater than this
 
+const uint8_t dinoEndX = dinoBaseX + 22;
 
-GFXcanvas1 dino_ctx(22, dinoBaseY + 23);
-GFXcanvas1 track_ctx(W, 6);
-// GFXcanvas1 cloud_ctx(W, 14);
 
 void setup(void) {
   pinMode(JMP_BTN, INPUT);
@@ -141,8 +142,10 @@ void setup(void) {
     tft.drawBitmap(0, H - REFERENCE_LEVEL, (uint8_t*)track0, 300, 6, 0xFFFF);
     tft.drawBitmap(dinoX, dinoY, (uint8_t*)dinoSprite[dinoSpriteIdx], 22, 23, 0xFFFF);
   }
-  clear();
-  drawStars();
+
+  // clear();
+  // drawStars();
+  tft.drawBitmap(80, 10, moon, 20, 40, 0x9CF3, 0x0);
 }
 
 
@@ -153,28 +156,84 @@ int track0X = 0;
 int track1X = 300;
 float cloudX = 220.0f;
 bool jumping = false;
+uint8_t counter = 0;
+
+
+GFXcanvas1 dino_ctx(22, dinoBaseY + 23);
+GFXcanvas1 track_ctx(W, 6);
+GFXcanvas1 cactusR_ctx(W - dinoEndX, 25);
+GFXcanvas1 cactusL_ctx(dinoEndX, 25);
+const uint8_t cactusSpriteY{ H - REFERENCE_LEVEL - 25 };
+// GFXcanvas1 cactusPathL_ctx(dinoEndX, 25);
+// GFXcanvas1 cloud_ctx(W, 14);
+bool gameOver = false;
+float score = 0.0f;
+
 
 void loop() {
+
+
+
+  if (gameOver) {
+    tft.drawBitmap(c0.posX, cactusSpriteY + 25 - c0.h, c0.data, c0.w, c0.h, 0xFFFF);
+
+    tft.invertDisplay(true);
+    delay(500);
+    tft.invertDisplay(false);
+    delay(500);
+
+    return;
+  }
+
   unsigned long now = millis();
-  float dt = (now - then) / 15.0f;
+  float dt = (now - then) / 10.0f;
   then = now;
+
+
+
+
+
+
   /*-----------------
   ||  CLEAR canvas ||
   ------------------*/
-  // ctx.drawBitmap(0, 0, (uint8_t*)dinoSprite[dinoSpriteIdx], 22, 23, 0x0);
-  // tft.fillRect(dinoX, dinoY, 22, 23, 0x0);
   dino_ctx.fillRect(0, dinoY, 22, 23, 0x0);
   track_ctx.fillRect(0, 0, W, 6, 0x0);
-  // cloud_ctx.fillRect(cloudX, 0, 46, 14, 0x0);
+  if (c0.posX < dinoEndX) {
+    cactusL_ctx.fillRect(c0.posX, 25 - c0.h, c0.w, c0.h, 0x0);
+  }
+  // else { TODO : see how to make else working
+  cactusR_ctx.fillRect(c0.posX - dinoEndX, 25 - c0.h, c0.w, c0.h, 0x0);
+  // }
+
+
+
+
+
+
+
+
+
+
+
 
   /*----------------------
   ||  UPDATE everything ||
   -----------------------*/
+  score += dt / 10.0f;
+  const float dx = dinoVelX * dt;
   changeDinoSprite();
-  track0X -= dinoVelX * dt;
-  track1X -= dinoVelX * dt;
-  dinoVelX += 0.001;
-  // cloudX -= dinoVelX * dt * 0.01;
+  // dinoSpriteIdx += 1;
+  // dinoSpriteIdx %= 2;
+
+  track0X -= dx;
+  track1X -= dx;
+  c0.posX -= dx;
+  dinoVelX += 0.003;
+
+  counter++;
+  counter %= 50;
+
 
   if (track0X + 300 <= 0) {
     track0X = track1X + 300;
@@ -195,27 +254,80 @@ void loop() {
     dinoVelY = 0;
   }
 
+  if (c0.posX + c0.w < 0) {
+    tft.fillRect(0, cactusSpriteY, dinoBaseX, 25, 0x0);
+    c0.posX = 170;
+  }
+
+  // COLLISION
+  if (
+    (c0.posX < dinoX + 22) && (c0.posX + c0.w > dinoX)
+    && (cactusSpriteY + (25 - c0.h) < (dinoY + 23))
+
+  ) {
+    gameOver = true;
+    tft.setCursor(tft.width() / 2 - 30, tft.height() / 2);
+    tft.print("GAME OVER :)");
+  }
+
+
+
+
+
   /*---------------------
   ||  DRAW on canvas   ||
   ----------------------*/
   drawStars();
-  // cloud_ctx.drawBitmap(cloudX, 0, cloud, 46, 14, 0xFFFF, 0x0);
+
   track_ctx.drawBitmap(track0X, 0, (uint8_t*)track0, 300, 6, 0xFFFF);
   track_ctx.drawBitmap(track1X, 0, (uint8_t*)track1, 300, 6, 0xFFFF);
-  dino_ctx.drawBitmap(0, dinoY, (uint8_t*)dinoSprite[dinoSpriteIdx], 22, 23, 0xFFFF);
-  // dino_ctx.drawFastHLine(0, dino_ctx.height()-1, 22, 0xFFFF);
+  if (jumping) {
+    dino_ctx.drawBitmap(0, dinoY, dino, 22, 23, 0xFFFF);
+  } else {
+    dino_ctx.drawBitmap(0, dinoY, (uint8_t*)dinoSprite[dinoSpriteIdx], 22, 23, 0xFFFF);
+  }
+
+
+  if (c0.posX <= dinoEndX) {
+    cactusL_ctx.drawBitmap(c0.posX, 25 - c0.h, c0.data, c0.w, c0.h, 0xFFFF);
+
+  } else {
+    cactusR_ctx.drawBitmap(c0.posX - dinoEndX, 25 - c0.h, c0.data, c0.w, c0.h, 0xFFFF);
+  }
+
+
+
+  if (counter >= 47) {
+    dino_ctx.drawPixel(13, 3 + dinoY, 0xFFFF);
+  } else {
+    dino_ctx.drawPixel(13, 3 + dinoY, 0x0);
+  }
+
+
+
+
+
+
+
+
+
 
   /*--------------------------
   ||  transfer to display   ||
   ---------------------------*/
+  tft.fillRect(100, 0, 60, 9, 0x0);
+  tft.setCursor(100, 0);
+  tft.print((int)score);
 
-  tft.drawBitmap(dinoX, -2, dino_ctx.getBuffer(), 22, dino_ctx.height(), 0xFFFF, 0x0);
-  // tft.drawBitmap(0, 30, cloud_ctx.getBuffer(), W, 14, 0x9CF3, 0x0);
-  tft.drawBitmap(80, 10, moon, 20, 40, 0x9CF3, 0x0);
   tft.drawBitmap(0, H - REFERENCE_LEVEL, track_ctx.getBuffer(), W, 6, 0xFFFF, 0x0);
-
-  // temp
-  // delay(10);
+  // tft.drawBitmap(80, 10, moon, 20, 40, 0x9CF3, 0x0);
+  if (c0.posX <= dinoEndX) {
+    tft.drawBitmap(0, cactusSpriteY, cactusL_ctx.getBuffer(), cactusL_ctx.width(), cactusL_ctx.height(), 0xFFFF, 0x0);
+  }
+  // else { TODO : see how to make else working
+  tft.drawBitmap(dinoEndX, cactusSpriteY, cactusR_ctx.getBuffer(), cactusR_ctx.width(), cactusR_ctx.height(), 0xFFFF, 0x0);
+  // }
+  tft.drawBitmap(dinoX, -2, dino_ctx.getBuffer(), 22, dino_ctx.height(), 0xFFFF, 0x0);
 }
 
 
@@ -242,7 +354,7 @@ void drawStars() {
 -------------------------------*/
 
 void dinoJmp() {
-  dinoVelY = -6.6f;
+  dinoVelY = -6.8f;
 }
 
 void updateDino(float dt) {
