@@ -354,7 +354,7 @@ void drawStars() {
 -------------------------------*/
 
 void dinoJmp() {
-  dinoVelY = -6.8f;
+  dinoVelY = -7.5f;
 }
 
 void updateDino(float dt) {
