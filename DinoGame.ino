@@ -4,7 +4,6 @@
 
 #include <Adafruit_GFX.h>     // Core graphics library
 #include <Adafruit_ST7735.h>  // Hardware-specific library for ST7735
-#include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
 #include <SPI.h>
 
 #define TFT_CS D1   // PyBadge/PyGamer display control pins: chip select
@@ -360,7 +359,6 @@ void dinoJmp() {
 void updateDino(float dt) {
   dinoVelY += GRAVITY * dt;
   dinoY += dinoVelY * dt;  // s=v*dt
-  // dinoX += dinoVelX * dt;  // TODO : remove this later as everything will be scrolling in reverse
 }
 
 void changeDinoSprite() {
