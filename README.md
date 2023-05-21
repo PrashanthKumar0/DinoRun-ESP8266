@@ -19,3 +19,6 @@ Made dinorun game for nodemcu using 1.8 TFT display
 |    G      |    GND        |
 |    3V     |    VCC        |
 |    3V     |    LED        |
+
+> When D3 pin is gounded the low signal is triggered in nodemcu. so D3 is connected to switch and switch to G pin in nodemcu.
+
