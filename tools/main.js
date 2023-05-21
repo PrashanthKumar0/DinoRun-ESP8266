@@ -4,6 +4,7 @@ onload = main;
  * constatns from chromium
  * 
  */
+/*
 const spriteData = {
     LDPI: {
         BACKGROUND_EL: { x: 86, y: 2 },
@@ -137,7 +138,7 @@ const spriteData = {
 
 
 
-
+*/
 
 let img;
 let ctx;
@@ -165,15 +166,9 @@ function main() {
         console.log(x, y);
     }
     img = new Image();
-    // img.src = "./assets/cactus.png";
-    // img.src = "./assets/track0.png";
-    // img.src = "./assets/track1.png";
-    // img.src = "./assets/star1.png";
-    // img.src = "./assets/dino-run-1.png";
-    // img.src = "./assets/track1.png";
-    // img.src = "./assets/dino-standing.png";
-    // img.src = "./assets/dino-idle.png";
-    // img.src = "./assets/bcactus0.png";
+    img.src = "./assets/cactus.png";
+
+    
     img.onload = setup;
 }
 
@@ -265,17 +260,19 @@ function activation(val) {
 }
 
 function printCppArray(variableName, arr, w, h) {
-    let str = `const uint8_t  ${variableName}[] = {`;
+    let str = ` 
+    // w=${w}  h=${h}
+    const uint8_t  ${variableName}[] = {`;
 
     for (let i = 0; i < arr.length; i++) {
-        // console.log(arr[i]);
+ 
         str += `0x${(arr[i]).toString(16).toUpperCase()}`;
         if ((i + 1) != arr.length) {
             str += ',';
         }
     }
 
-    str += `}; // w=${w}  h=${h}`;
+    str += `};`;
 
     console.log(str);
 }
